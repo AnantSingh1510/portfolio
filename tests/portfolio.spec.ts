@@ -146,10 +146,15 @@ test("Pixel roams along the viewport and can be petted there", async ({
   );
   const first = await roamer.boundingBox();
   expect(first).not.toBeNull();
-  await expect.poll(async () => {
-    const next = await roamer.boundingBox();
-    return next ? Math.abs(next.x - first!.x) : 0;
-  }, { timeout: 3000 }).toBeGreaterThan(5);
+  await expect
+    .poll(
+      async () => {
+        const next = await roamer.boundingBox();
+        return next ? Math.abs(next.x - first!.x) : 0;
+      },
+      { timeout: 3000 },
+    )
+    .toBeGreaterThan(5);
   expect(first!.y).toBeGreaterThan(0);
   await roamer.evaluate((button: HTMLButtonElement) => button.click());
   await page.getByRole("button", { name: "Meet Pixel companion" }).click();
@@ -190,6 +195,37 @@ test("network playground reroutes around failed links and traces transport behav
   await lab.getByRole("button", { name: "RUN SIMULATION" }).click();
   await expect(lab.locator(".network-metrics")).toContainText("RETRANSMITS0");
   await expect(lab.locator(".network-log-lines")).not.toContainText("SYN-ACK");
+});
+
+test("packet animation survives early frame timestamps in every topology", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?intro=0#network");
+  await page.evaluate(() => {
+    const requestFrame = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) =>
+      requestFrame((time) => callback(time - 120));
+  });
+  const lab = page.locator("#network");
+  for (const topology of ["Mesh", "Ring", "Star"]) {
+    await lab.getByRole("button", { name: topology, exact: true }).click();
+    for (let run = 0; run < 2; run++) {
+      await lab.getByRole("button", { name: "RUN SIMULATION" }).click();
+      await page.waitForTimeout(70);
+      await expect(lab.locator(".network-log-lines")).toContainText("SEQ");
+      await expect(
+        lab.getByRole("heading", { name: "Packets have a story." }),
+      ).toBeVisible();
+    }
+  }
+  await lab
+    .getByRole("button", { name: "Fail CLIENT to CORE connection" })
+    .click();
+  await lab.getByRole("button", { name: "RUN SIMULATION" }).click();
+  await expect(lab.locator(".network-log-lines")).toContainText("NO ROUTE");
+  expect(errors).toEqual([]);
 });
 
 test("3D study renders and its orbit and reset controls respond", async ({

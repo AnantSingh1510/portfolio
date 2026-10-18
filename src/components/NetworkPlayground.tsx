@@ -76,7 +76,7 @@ export default function NetworkPlayground({ paused }: { paused: boolean }) {
     let frame = 0;
     const start = performance.now();
     const draw = (time: number) => {
-      const next = Math.min(1, (time - start) / 1550);
+      const next = Math.max(0, Math.min(1, (time - start) / 1550));
       setProgress(next);
       if (next < 1) frame = requestAnimationFrame(draw);
       else setProgress(null);
@@ -114,9 +114,9 @@ export default function NetworkPlayground({ paused }: { paused: boolean }) {
     setRun((value) => value + 1);
   };
   const point = (() => {
-    if (progress === null || !route) return null;
+    if (progress === null || !route || route.length < 2) return null;
     const scaled = progress * (route.length - 1);
-    const index = Math.min(route.length - 2, Math.floor(scaled));
+    const index = Math.max(0, Math.min(route.length - 2, Math.floor(scaled)));
     const fraction = scaled - index;
     const a = nodeById[route[index]];
     const b = nodeById[route[index + 1]];
