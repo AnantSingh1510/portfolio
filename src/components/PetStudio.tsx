@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowUpRight,
   Cookie,
@@ -66,7 +66,11 @@ function isPetState(value: unknown): value is PetState {
 export default function PetStudio({ paused }: { paused: boolean }) {
   const [open, setOpen] = useState(false);
   const [roamBurst, setRoamBurst] = useState(0);
-  const [roamDuration, setRoamDuration] = useState(() => typeof window === "undefined" ? 22 : Math.max(4, (window.innerWidth - 263) / 35));
+  const [roamDuration, setRoamDuration] = useState(() =>
+    typeof window === "undefined"
+      ? 22
+      : Math.max(4, (window.innerWidth - 263) / 35),
+  );
   const dockRef = useRef<HTMLElement>(null);
   const [pet, setPet, storageError] = useStoredState<PetState>(
     "anant-pixel-pet-v1",
@@ -78,7 +82,8 @@ export default function PetStudio({ paused }: { paused: boolean }) {
   const coat = coats[pet.coat];
   const isStill = paused || pet.sleeping;
   useEffect(() => {
-    const resize = () => setRoamDuration(Math.max(4, (window.innerWidth - 263) / 35));
+    const resize = () =>
+      setRoamDuration(Math.max(4, (window.innerWidth - 263) / 35));
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
   }, []);
@@ -128,21 +133,6 @@ export default function PetStudio({ paused }: { paused: boolean }) {
         : "Pixel is dreaming in CSS.",
     );
   };
-  const look = (event: PointerEvent<HTMLButtonElement>) => {
-    if (paused || pet.sleeping) return;
-    const box = event.currentTarget.getBoundingClientRect();
-    const x = Math.max(
-      -3,
-      Math.min(3, ((event.clientX - box.left) / box.width - 0.5) * 6),
-    );
-    const y = Math.max(
-      -2,
-      Math.min(2, ((event.clientY - box.top) / box.height - 0.5) * 4),
-    );
-    event.currentTarget.style.setProperty("--look-x", `${x}px`);
-    event.currentTarget.style.setProperty("--look-y", `${y}px`);
-  };
-
   return (
     <>
       <div
@@ -235,11 +225,6 @@ export default function PetStudio({ paused }: { paused: boolean }) {
                 <button
                   className="pet-touch"
                   onClick={givePet}
-                  onPointerMove={look}
-                  onPointerLeave={(event) => {
-                    event.currentTarget.style.setProperty("--look-x", "0px");
-                    event.currentTarget.style.setProperty("--look-y", "0px");
-                  }}
                   aria-label={`Pet Pixel the ${pet.species}`}
                   title="Pet Pixel"
                 >
@@ -275,8 +260,8 @@ export default function PetStudio({ paused }: { paused: boolean }) {
                 </h2>
                 <p className="pet-intro">
                   The portfolio’s tiny resident. Drawn pixel by pixel, with a
-                  proper four-step walk. Pixel isn’t a real pet; it’s a small experiment
-                  in making an interface feel alive.
+                  proper four-step walk. Pixel isn’t a real pet; it’s a small
+                  experiment in making an interface feel alive.
                 </p>
                 <div className="pet-control-buttons">
                   <button onClick={givePet}>

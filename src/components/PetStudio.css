@@ -1202,7 +1202,8 @@
   height: 100%;
   overflow: visible;
   transform: scaleX(1);
-  animation: pixel-face-turn calc(var(--roam-duration, 20s) * 2) steps(1, end) infinite;
+  animation: pixel-face-turn calc(var(--roam-duration, 20s) * 2) steps(1, end)
+    infinite;
 }
 .pixel-wag-tail {
   transform-origin: 96px 51px;

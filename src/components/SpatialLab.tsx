@@ -37,7 +37,11 @@ export default function SpatialLab({ paused }: { paused: boolean }) {
 
   useEffect(() => {
     if (window.location.hash !== "#spatial") return;
-    const frame = requestAnimationFrame(() => document.getElementById("spatial")?.scrollIntoView({ behavior: "instant" }));
+    const frame = requestAnimationFrame(() =>
+      document
+        .getElementById("spatial")
+        ?.scrollIntoView({ behavior: "instant" }),
+    );
     return () => cancelAnimationFrame(frame);
   }, []);
 

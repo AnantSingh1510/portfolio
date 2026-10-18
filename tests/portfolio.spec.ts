@@ -1,10 +1,52 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test("home navigation, project links and animation controls work", async ({
+test("welcome opens on every visit, guides visitors, and can be replayed", async ({
   page,
 }) => {
   await page.goto("/");
+  const welcome = page.getByRole("dialog", {
+    name: "Welcome to Anant’s portfolio",
+  });
+  await expect(welcome).toBeVisible();
+  await expect(
+    welcome.getByRole("button", { name: /See what I build/ }),
+  ).toBeFocused();
+  const accessibility = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(accessibility.violations.map((violation) => violation.id)).toEqual([]);
+  await welcome.getByRole("button", { name: /Break the network/ }).click();
+  await expect(welcome).toHaveCount(0);
+  await expect(page).toHaveURL(/#network$/);
+  await expect(page.locator("#network")).toBeInViewport();
+  await page.goto("/");
+  await expect(welcome).toBeVisible();
+  await welcome.getByRole("button", { name: /I’ll explore on my own/ }).click();
+  await expect(welcome).toHaveCount(0);
+  const replay = page.getByRole("button", { name: "Replay intro" });
+  await replay.click();
+  await expect(welcome).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(welcome).toHaveCount(0);
+  await expect(replay).toBeFocused();
+  await page.goto("/#work");
+  await page.reload();
+  await expect(welcome).toBeVisible();
+  await welcome.getByRole("button", { name: /I’ll explore on my own/ }).click();
+  await expect(page.locator("#work")).toBeInViewport();
+  await page.goto("/?intro=0");
+  await expect(welcome).toHaveCount(0);
+  await page.goto("/?intro=1");
+  await expect(welcome).toBeVisible();
+  await welcome.getByRole("button", { name: /I’ll explore on my own/ }).click();
+  await expect(page).toHaveURL(/\/$/);
+});
+
+test("home navigation, project links and animation controls work", async ({
+  page,
+}) => {
+  await page.goto("/?intro=0");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Interfaces",
   );
@@ -32,7 +74,7 @@ test("home navigation, project links and animation controls work", async ({
 test("public engineering work has source links and scroll progress", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?intro=0");
   await expect(
     page.getByRole("heading", { name: "The work goes deeper." }),
   ).toBeVisible();
@@ -61,7 +103,7 @@ test("public engineering work has source links and scroll progress", async ({
 });
 
 test("Pixel responds to play and remembers its coat", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?intro=0");
   await page.getByRole("button", { name: "Meet Pixel companion" }).click();
   const studio = page.locator(".pixel-popover");
   await expect(
@@ -90,7 +132,7 @@ test("Pixel responds to play and remembers its coat", async ({ page }) => {
 test("Pixel roams along the viewport and can be petted there", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?intro=0");
   const roamer = page.getByRole("button", {
     name: "Pet Pixel the roaming dog",
   });
@@ -103,12 +145,12 @@ test("Pixel roams along the viewport and can be petted there", async ({
     "pixel-frame-0",
   );
   const first = await roamer.boundingBox();
-  await page.waitForTimeout(450);
-  const second = await roamer.boundingBox();
   expect(first).not.toBeNull();
-  expect(second).not.toBeNull();
-  expect(Math.abs(second!.x - first!.x)).toBeGreaterThan(5);
-  expect(second!.y).toBeGreaterThan(0);
+  await expect.poll(async () => {
+    const next = await roamer.boundingBox();
+    return next ? Math.abs(next.x - first!.x) : 0;
+  }, { timeout: 3000 }).toBeGreaterThan(5);
+  expect(first!.y).toBeGreaterThan(0);
   await roamer.evaluate((button: HTMLButtonElement) => button.click());
   await page.getByRole("button", { name: "Meet Pixel companion" }).click();
   await expect(page.locator(".pixel-popover")).toContainText(
@@ -119,7 +161,7 @@ test("Pixel roams along the viewport and can be petted there", async ({
 test("network playground reroutes around failed links and traces transport behavior", async ({
   page,
 }) => {
-  await page.goto("/#network");
+  await page.goto("/?intro=0#network");
   const lab = page.locator("#network");
   await expect(
     lab.getByRole("heading", { name: "Packets have a story." }),
@@ -155,13 +197,15 @@ test("3D study renders and its orbit and reset controls respond", async ({
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/#spatial");
+  await page.goto("/?intro=0#spatial");
   const study = page.locator("#spatial");
   await expect(
     study.getByRole("heading", { name: /See the system/ }),
   ).toBeVisible();
   await expect(study.locator("canvas")).toBeVisible();
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(1000);
   await study.getByRole("button", { name: "PAUSE ORBIT" }).click();
   await expect(
     study.getByRole("button", { name: "AUTO ORBIT" }),
@@ -185,7 +229,7 @@ test("3D study renders and its orbit and reset controls respond", async ({
 test("quick finder opens from the keyboard and finds a project", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?intro=0");
   await page.keyboard.press("/");
   const finder = page.getByRole("dialog", { name: "Find your way" });
   await expect(finder).toBeVisible();
@@ -204,7 +248,7 @@ test("quick finder opens from the keyboard and finds a project", async ({
 test("project quick preview shows context and restores focus on close", async ({
   page,
 }) => {
-  await page.goto("/#work");
+  await page.goto("/?intro=0#work");
   const trigger = page.getByRole("button", { name: "Quick preview of Orbit" });
   await trigger.click();
   const preview = page.getByRole("dialog", { name: "Orbit project preview" });
@@ -223,7 +267,7 @@ test("decorative canvases stay still when reduced motion is requested", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await page.goto("/?intro=0");
   await page.locator(".signal-canvas").scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);
   const capture = () =>
@@ -438,7 +482,7 @@ for (const route of [
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(route);
+    await page.goto(route === "/" ? "/?intro=0" : route);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect(
       await page.evaluate(
@@ -460,7 +504,7 @@ for (const route of [
   });
   test(`${route} passes WCAG 2.1 AA automated checks`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto(route);
+    await page.goto(route === "/" ? "/?intro=0" : route);
     await page.getByRole("heading", { level: 1 }).waitFor();
     await page.evaluate(async () => {
       for (let y = 0; y < document.body.scrollHeight; y += 600) {
@@ -496,7 +540,7 @@ test("unknown routes show a useful recovery page", async ({ page }) => {
 
 test("fresh section links land on the requested content", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/#work");
+  await page.goto("/?intro=0#work");
   await expect
     .poll(() => page.evaluate(() => window.scrollY))
     .toBeGreaterThan(500);
@@ -505,6 +549,10 @@ test("fresh section links land on the requested content", async ({ page }) => {
   ).toBeInViewport();
   await page.goto("/projects/orbit");
   await page.getByRole("link", { name: "Back to selected work" }).click();
+  await page
+    .getByRole("dialog", { name: "Welcome to Anant’s portfolio" })
+    .getByRole("button", { name: /I’ll explore on my own/ })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Ideas, made tangible." }),
   ).toBeInViewport();

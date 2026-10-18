@@ -22,6 +22,7 @@ import WireSculpture from "./components/WireSculpture";
 import SignalField from "./components/SignalField";
 import PetStudio from "./components/PetStudio";
 import NetworkPlayground from "./components/NetworkPlayground";
+import WelcomeExperience from "./components/WelcomeExperience";
 import { ProjectPeek, QuickFinder } from "./components/PortfolioOverlays";
 import { profile, projects, realProjects } from "./config";
 
@@ -127,6 +128,21 @@ function Home() {
   const [paused, setPaused] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
   const [peekId, setPeekId] = useState<string | null>(null);
+  const [welcomeOpen, setWelcomeOpen] = useState(
+    () => new URLSearchParams(window.location.search).get("intro") !== "0",
+  );
+  const closeWelcome = () => {
+    setWelcomeOpen(false);
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("intro") === "1") {
+      url.searchParams.delete("intro");
+      window.history.replaceState(
+        null,
+        "",
+        url.pathname + url.search + url.hash,
+      );
+    }
+  };
   const peekProject = projects.find((project) => project.id === peekId);
   useEffect(() => {
     const openFinder = (event: KeyboardEvent) => {
@@ -721,8 +737,12 @@ function Home() {
           <a href="#" className="back-top">
             Back to top <ArrowRight size={13} />
           </a>
+          <button className="replay-intro" onClick={() => setWelcomeOpen(true)}>
+            Replay intro <ArrowUpRight size={13} />
+          </button>
         </div>
       </footer>
+      {welcomeOpen && <WelcomeExperience onClose={closeWelcome} />}
       {finderOpen && <QuickFinder onClose={() => setFinderOpen(false)} />}
       {peekProject && (
         <ProjectPeek project={peekProject} onClose={() => setPeekId(null)} />
